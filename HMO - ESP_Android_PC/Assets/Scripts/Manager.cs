@@ -23,7 +23,7 @@ public class Manager : MonoBehaviour
         ListenForMessages();
         brain = Application.dataPath + "/brain.mp4";
         lungs = Application.dataPath + "/lungs.mp4";
-        gut = Application.dataPath + "/brain.mp4";
+        gut = Application.dataPath + "/gut.mp4";
         //videoPlayer.url = brain;
         //videoPlayer.Play();
     }
