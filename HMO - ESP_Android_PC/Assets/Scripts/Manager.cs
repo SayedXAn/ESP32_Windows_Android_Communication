@@ -1,80 +1,114 @@
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Video;
+using System.Net.Http;
+using System.Collections;
 
 public class Manager : MonoBehaviour
 {
-    public string espIP = "192.168.4.1"; // ESP32 AP IP
-    public int port = 81;
-
     public VideoPlayer videoPlayer;
     public RenderTexture rt;
 
-    TcpClient client;
-    NetworkStream stream;
+    private static readonly HttpClient client = new HttpClient();
+    public string flaskURL = "http://127.0.0.1:5000/get_command";
+
     public string brain, lungs, gut;
+    private string curr = "";
 
-    async void Start()
+    void Start()
     {
-
-        await ConnectToESP32();
-        ListenForMessages();
+        InvokeRepeating(nameof(PollFlask), 1f, 1f);
         brain = Application.dataPath + "/brain.mp4";
         lungs = Application.dataPath + "/lungs.mp4";
         gut = Application.dataPath + "/gut.mp4";
-        //videoPlayer.url = brain;
-        //videoPlayer.Play();
     }
-
-    async Task ConnectToESP32()
+    async void PollFlask()
     {
-        client = new TcpClient();
-        await client.ConnectAsync(espIP, port);
-        stream = client.GetStream();
-        Debug.Log("Connected to ESP32");
-    }
-
-    async void ListenForMessages()
-    {
-        byte[] buffer = new byte[256];
-
-        while (true)
+        try
         {
-            if (stream != null && stream.CanRead)
+            string json = await client.GetStringAsync(flaskURL);
+
+            // Convert JSON → C# object
+            CommandResponse data = JsonUtility.FromJson<CommandResponse>(json);
+
+            if (data != null && !string.IsNullOrEmpty(data.command))
             {
-                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                string msg = Encoding.ASCII.GetString(buffer, 0, bytesRead).Trim();
-
-                Debug.Log("ESP32 sent: " + msg);
-
-                ProcessCommand(msg);
+                ProcessCommand(data.command.Trim().ToLower());
             }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Flask error: " + e.Message);
         }
     }
 
+
     void ProcessCommand(string cmd)
     {
-        if (cmd == "LED_BRAIN")
+        //Debug.Log(cmd + "   "+curr);
+        if(cmd == curr)
+        {
+            //Debug.Log("ferot jacche?");
+            return;
+        }
+        if (cmd == "led_brain" )
+        {
+            //Debug.Log("Dhuke brain a?");
+            curr = cmd;
             PlayVideo(brain);
-
-        else if (cmd == "LED_LUNGS")
+        }
+        else if (cmd == "led_lungs")
+        {
+            //Debug.Log("Dhuke lungs a?");
+            curr = cmd;
             PlayVideo(lungs);
-
-        else if (cmd == "LED_GUT")
+        }
+        else if (cmd == "led_gut")
+        {
+            //Debug.Log("Dhuke gut a?");
+            curr = cmd;
             PlayVideo(gut);
+        }
+        else if (cmd == "reset")
+        {
+            //Debug.Log("Dhuke reset a?");
+            curr = cmd;
+            ResetVideo();
 
-        else if (cmd == "RESET")
-            videoPlayer.Stop();
+        }
+        //Debug.Log(cmd);
     }
-
     void PlayVideo(string fileName)
     {
-        //videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, fileName);
         videoPlayer.Stop();
         rt.Release();
-        videoPlayer.url = fileName;        
+        videoPlayer.url = fileName;
         videoPlayer.Play();
+        StartCoroutine(CheckIfVideoEnds());
+    }
+
+    void ResetVideo()
+    {
+        curr = "reset";
+        videoPlayer.Stop();
+        rt.Release();
+    }
+    IEnumerator CheckIfVideoEnds()
+    {
+        yield return new WaitForSeconds(0.1f);
+        if(videoPlayer.isPlaying)
+        {
+            StartCoroutine(CheckIfVideoEnds());
+        }
+        else
+        {
+            ResetVideo();
+        }
+    }
+
+
+    [System.Serializable]
+    public class CommandResponse
+    {
+        public string command;
     }
 }

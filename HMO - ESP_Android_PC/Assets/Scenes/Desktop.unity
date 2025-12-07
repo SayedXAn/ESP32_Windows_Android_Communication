@@ -256,10 +256,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f01c45b4a1ae1e409c825b9797b9574, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  espIP: 192.168.4.1
-  port: 81
   videoPlayer: {fileID: 1941138560}
   rt: {fileID: 8400000, guid: 40ea1a73816f15c4995bce9591c1297f, type: 2}
+  flaskURL: http://192.168.1.104:5000/get_command
   brain: 
   lungs: 
   gut: 
@@ -885,7 +884,7 @@ VideoPlayer:
   m_AspectRatio: 2
   m_DataSource: 1
   m_TimeUpdateMode: 2
-  m_PlaybackSpeed: 1
+  m_PlaybackSpeed: 10
   m_AudioOutputMode: 2
   m_TargetAudioSources:
   - {fileID: 0}
