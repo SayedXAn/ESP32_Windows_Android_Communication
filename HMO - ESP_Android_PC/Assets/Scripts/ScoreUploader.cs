@@ -7,16 +7,15 @@ using TMPro;
 
 public class ScoreUploader : MonoBehaviour
 {
-    private const string url = "https://rfid-scan.mern.singularitybd.net/users/set-point";
-    private const string token = "9b1de5f407f1463e7b2a921bbce364";
+    private const string url = "https://rfid-scan.wskoly.xyz/api/game/score";
 
     public TMP_InputField rfid_IF;
     public TMP_InputField score_IF;
     private int gameID = 0;
     public Slider scoreSlider;
-    public TMP_Dropdown gameIDDropdown;
     public Button submitButton;
     public TMP_Text statusText;
+    public TMP_Text scoreText;
 
     private void Start()
     {
@@ -34,6 +33,7 @@ public class ScoreUploader : MonoBehaviour
             //score_IF.ActivateInputField();
             scoreSlider.interactable = true;
             submitButton.interactable = true;
+            score_IF.text = scoreSlider.value.ToString();
         }
     }
 
@@ -44,18 +44,10 @@ public class ScoreUploader : MonoBehaviour
 
     IEnumerator PostScore(string rfid, int gID, int score)
     {
+        var gameID = gID + 1;
         // Build JSON manually
-        string jsonBody = "{";
-        jsonBody += "\"RFID\":\"" + rfid + "\",";
 
-        if (gID == 0) jsonBody += "\"game1\":" + score;
-        if (gID == 1) jsonBody += "\"game2\":" + score;
-        if (gID == 2) jsonBody += "\"game3\":" + score;
-        if (gID == 3) jsonBody += "\"game4\":" + score;
-        if (gID == 4) jsonBody += "\"game5\":" + score;
-        if (gID == 5) jsonBody += "\"game6\":" + score;
-
-        jsonBody += "}";
+        string jsonBody = $"{{\"rfid\": \"{rfid}\", \"scores\": {{\"{gameID}\": {score}}}}}";
 
         Debug.Log("Sending: " + jsonBody);
         statusText.text = "Posting score...";
@@ -66,7 +58,7 @@ public class ScoreUploader : MonoBehaviour
         request.downloadHandler = new DownloadHandlerBuffer();
 
         request.SetRequestHeader("Content-Type", "application/json");
-        request.SetRequestHeader("x-token", token);
+        //request.SetRequestHeader("x-token", token);
 
         yield return request.SendWebRequest();
 
@@ -75,6 +67,9 @@ public class ScoreUploader : MonoBehaviour
             Debug.Log("POST Success: " + request.downloadHandler.text);
             statusText.text = "Score updated successfully!";
             statusText.color = Color.green;
+            // Parse JSON response
+            UpdateScoreResponse response = JsonUtility.FromJson<UpdateScoreResponse>(request.downloadHandler.text);
+            scoreText.text = $"Your total score: {response.total_points}";
         }
         else
         {
@@ -95,50 +90,32 @@ public class ScoreUploader : MonoBehaviour
     {
         score_IF.text = scoreSlider.value.ToString();
     }
-    public void SyncDropDownWithGID()
+
+    public void ResetRFIDText()
     {
-        gameID = gameIDDropdown.value;
+        rfid_IF.text = "";
+        score_IF.text = "10";
+        scoreSlider.value = 10;
+        scoreText.text = "";
     }
 }
 
 [System.Serializable]
-public class ScoreData
+public class ScoreResponse
 {
-    public string RFID;
-    public int game1;
-    public int game2;
-    public int game3;
-    public int game4;
-    public int game5;
-    public int game6;
-    public int gameId;
+    public string rfid;
+    public int game_id;
+    public int score;
+    public string user_name;
+    public int total_points;
+}
 
-    public ScoreData(string rfid, int gID, int score)
-    {
-        RFID = rfid;
-        if(gID == 0)
-        {
-            game1 = score;
-        }
-        else if(gID == 1)
-        {
-            game2 = score;
-        }
-        else if(gID == 2)
-        {
-            game3 = score;
-        }
-        else if (gID == 3)
-        {
-            game4 = score;
-        }
-        else if (gID == 4)
-        {
-            game5 = score;
-        }
-        else if (gID == 5)
-        {
-            game6 = score;
-        }
-    }    
+[System.Serializable]
+public class UpdateScoreResponse
+{
+    public string rfid;
+    public string user_name;
+    public string updated_games;
+    public int total_points;
+    public string message;
 }
